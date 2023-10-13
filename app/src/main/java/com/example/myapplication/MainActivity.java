@@ -1,61 +1,63 @@
 package com.example.myapplication;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
-
-import java.util.jar.Attributes;
+import android.widget.ListView;
+import android.widget.Switch;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    SharedPreferences pref = null;
-    EditText editText;
+    private EditText editText;
+    private Switch urgentSwitch;
+    private Button addButton;
+    private ListView listView;
+    private List<TodoItem> todoList;
+    private TodoAdapter todoAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Button button = findViewById(R.id.button);
 
-        pref = getSharedPreferences("username", MODE_PRIVATE);
         editText = findViewById(R.id.editText);
-        String savedName = pref.getString("userName","");
-        editText.setText(savedName);
-        Intent nextPage = new Intent(this, NameActivity.class);
-        button.setOnClickListener(click ->
-        {
-            String name = editText.getText().toString();
-            SharedPreferences.Editor edit = pref.edit();
-            edit.putString("username", name);
-            edit.apply();
-            nextPage.putExtra("username", name);
-            startActivityForResult(nextPage, 1);
+        urgentSwitch = findViewById(R.id.urgentSwitch);
+        addButton = findViewById(R.id.addButton);
+        listView = findViewById(R.id.listView);
+
+        todoList = new ArrayList<>();
+        todoAdapter = new TodoAdapter(this, todoList);
+        listView.setAdapter(todoAdapter);
+
+        addButton.setOnClickListener(v -> {
+            String text = editText.getText().toString();
+            boolean urgent = urgentSwitch.isChecked();
+
+            TodoItem newItem = new TodoItem(text, urgent);
+            todoList.add(newItem);
+
+            editText.getText().clear();
+            todoAdapter.notifyDataSetChanged();
         });
-    }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-    }
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setTitle("Do you want to delete this?");
+            builder.setMessage("The selected row is: " + position);
 
-        String currentName = editText.getText().toString();
-        SharedPreferences.Editor edit = pref.edit();
-        edit.putString("username", currentName);
-        edit.apply();
-    }
+            builder.setPositiveButton("Yes", (dialog, which) -> {
+                todoList.remove(position);
+                todoAdapter.notifyDataSetChanged();
+            });
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+            builder.setNegativeButton("No", (dialog, which) -> dialog.dismiss());
+
+            builder.show();
+            return true;
+        });
     }
 }
