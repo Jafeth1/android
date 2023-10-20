@@ -10,11 +10,11 @@ import android.widget.TextView;
 
 import java.util.List;
 
-public class TodoAdapter extends ArrayAdapter<TodoItem> {
+public class Adapter extends ArrayAdapter<TodoItem> {
 
     private List<TodoItem> itemList;
 
-    public TodoAdapter(Context context, List<TodoItem> itemList) {
+    public Adapter(Context context, List<TodoItem> itemList) {
         super(context, 0, itemList);
         this.itemList = itemList;
     }
