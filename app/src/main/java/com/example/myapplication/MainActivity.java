@@ -1,61 +1,123 @@
 package com.example.myapplication;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.content.Intent;
-import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.widget.Button;
-import android.widget.EditText;
-
-import java.util.jar.Attributes;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import org.json.JSONObject;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
+    private ImageView imageView;
+    private ProgressBar progressBar;
+    private Bitmap currentCatImage = null;
 
-    SharedPreferences pref = null;
-    EditText editText;
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Button button = findViewById(R.id.button);
 
-        pref = getSharedPreferences("username", MODE_PRIVATE);
-        editText = findViewById(R.id.editText);
-        String savedName = pref.getString("userName","");
-        editText.setText(savedName);
-        Intent nextPage = new Intent(this, NameActivity.class);
-        button.setOnClickListener(click ->
-        {
-            String name = editText.getText().toString();
-            SharedPreferences.Editor edit = pref.edit();
-            edit.putString("username", name);
-            edit.apply();
-            nextPage.putExtra("username", name);
-            startActivityForResult(nextPage, 1);
-        });
-    }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-    }
-    @Override
-    protected void onStart() {
-        super.onStart();
+        imageView = findViewById(R.id.imageView);
+        progressBar = findViewById(R.id.progressBar);
+
+        new CatImages().execute();
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
+    private class CatImages extends AsyncTask<Void, Integer, Void> {
+        @Override
+        protected Void doInBackground(Void... voids) {
+            while (true) {
+                try {
+                    JSONObject jsonObject = getJSONFromUrl("https://cataas.com/cat?json=true");
+                    String id = jsonObject.getString("id");
+                    String url = jsonObject.getString("url");
 
-        String currentName = editText.getText().toString();
-        SharedPreferences.Editor edit = pref.edit();
-        edit.putString("username", currentName);
-        edit.apply();
-    }
+                    File file = new File(getFilesDir(), id + ".jpg");
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+                    if (file.exists()) {
+                        currentCatImage = BitmapFactory.decodeFile(file.getAbsolutePath());
+                    } else {
+                        currentCatImage = downloadImage(url, file);
+                    }
+
+                    publishProgress(-1);
+
+                    for (int i = 0; i < 100; i++) {
+                        try {
+                            publishProgress(i);
+                            Thread.sleep(30);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            super.onProgressUpdate(values);
+            if (values[0] == -1 && currentCatImage != null) {
+                imageView.setImageBitmap(currentCatImage);
+            } else {
+                progressBar.setProgress(values[0]);
+            }
+        }
+
+        private JSONObject getJSONFromUrl(String urlString) {
+            try {
+                URL url = new URL(urlString);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                InputStream inputStream = connection.getInputStream();
+
+                int read;
+                StringBuilder builder = new StringBuilder();
+                while ((read = inputStream.read()) != -1) {
+                    builder.append((char) read);
+                }
+
+                connection.disconnect();
+                inputStream.close();
+
+                return new JSONObject(builder.toString());
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        private Bitmap downloadImage(String urlString, File file) {
+            try {
+                URL url = new URL("https://cataas.com" + urlString);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                InputStream inputStream = connection.getInputStream();
+
+                Bitmap image = BitmapFactory.decodeStream(inputStream);
+
+                FileOutputStream outputStream = new FileOutputStream(file);
+                image.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+
+                outputStream.flush();
+                outputStream.close();
+                inputStream.close();
+                connection.disconnect();
+
+                return image;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
     }
 }
