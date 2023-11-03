@@ -1,122 +1,68 @@
 package com.example.myapplication;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
-import androidx.annotation.Nullable;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
 import androidx.appcompat.app.AppCompatActivity;
+import org.json.JSONArray;
 import org.json.JSONObject;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 public class MainActivity extends AppCompatActivity {
-    private ImageView imageView;
-    private ProgressBar progressBar;
-    private Bitmap currentCatImage = null;
 
+    ListView listView;
+    CustomAdapter adapter;
+    ArrayList<String> names = new ArrayList<>();
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        imageView = findViewById(R.id.imageView);
-        progressBar = findViewById(R.id.progressBar);
-
-        new CatImages().execute();
+        listView = findViewById(R.id.list_view);
+        adapter = new CustomAdapter(this, names);
+        listView.setAdapter(adapter);
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            Intent intent = new Intent(MainActivity.this, CharacterDetailsActivity.class);
+            intent.putExtra("characterName", names.get(position));
+            startActivity(intent);
+        });
+        new StarWarsTask().execute();
     }
 
-    private class CatImages extends AsyncTask<Void, Integer, Void> {
+    private class StarWarsTask extends AsyncTask<Void, Void, JSONArray> {
         @Override
-        protected Void doInBackground(Void... voids) {
-            while (true) {
-                try {
-                    JSONObject jsonObject = getJSONFromUrl("https://cataas.com/cat?json=true");
-                    String id = jsonObject.getString("id");
-                    String url = jsonObject.getString("url");
-
-                    File file = new File(getFilesDir(), id + ".jpg");
-
-                    if (file.exists()) {
-                        currentCatImage = BitmapFactory.decodeFile(file.getAbsolutePath());
-                    } else {
-                        currentCatImage = downloadImage(url, file);
-                    }
-
-                    publishProgress(-1);
-
-                    for (int i = 0; i < 100; i++) {
-                        try {
-                            publishProgress(i);
-                            Thread.sleep(30);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            super.onProgressUpdate(values);
-            if (values[0] == -1 && currentCatImage != null) {
-                imageView.setImageBitmap(currentCatImage);
-            } else {
-                progressBar.setProgress(values[0]);
-            }
-        }
-
-        private JSONObject getJSONFromUrl(String urlString) {
+        protected JSONArray doInBackground(Void... voids) {
             try {
-                URL url = new URL(urlString);
+                URL url = new URL("https://swapi.dev/api/people/?format=json");
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                InputStream inputStream = connection.getInputStream();
-
-                int read;
+                Scanner scanner = new Scanner(connection.getInputStream());
                 StringBuilder builder = new StringBuilder();
-                while ((read = inputStream.read()) != -1) {
-                    builder.append((char) read);
+                while (scanner.hasNext()) {
+                    builder.append(scanner.nextLine());
                 }
-
-                connection.disconnect();
-                inputStream.close();
-
-                return new JSONObject(builder.toString());
+                JSONObject jsonObject = new JSONObject(builder.toString());
+                return jsonObject.getJSONArray("results");
             } catch (Exception e) {
-                e.printStackTrace();
                 return null;
             }
         }
 
-        private Bitmap downloadImage(String urlString, File file) {
+        @Override
+        protected void onPostExecute(JSONArray jsonArray) {
             try {
-                URL url = new URL("https://cataas.com" + urlString);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                InputStream inputStream = connection.getInputStream();
-
-                Bitmap image = BitmapFactory.decodeStream(inputStream);
-
-                FileOutputStream outputStream = new FileOutputStream(file);
-                image.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
-
-                outputStream.flush();
-                outputStream.close();
-                inputStream.close();
-                connection.disconnect();
-
-                return image;
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject character = jsonArray.getJSONObject(i);
+                    names.add(character.getString("name"));
+                }
+                adapter.notifyDataSetChanged();
             } catch (Exception e) {
                 e.printStackTrace();
-                return null;
             }
         }
     }
