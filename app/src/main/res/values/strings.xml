@@ -1,3 +1,9 @@
 <resources>
-    <string name="app_name">My Application</string>
+    <string name="app_name">MyApplication</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_dad_joke">Dad Joke</string>
+    <string name="nav_exit">Exit</string>
+    <string name="action_choice_1">Choice 1</string>
+    <string name="action_choice_2">Choice 2</string>
+    <string name="action_overflow">Overflow</string>
 </resources>

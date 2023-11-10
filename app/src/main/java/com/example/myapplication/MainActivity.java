@@ -1,61 +1,54 @@
 package com.example.myapplication;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.widget.Button;
-import android.widget.EditText;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
-import java.util.jar.Attributes;
+import com.example.myapplication.R;
+import com.google.android.material.navigation.NavigationView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
-    SharedPreferences pref = null;
-    EditText editText;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Button button = findViewById(R.id.button);
-
-        pref = getSharedPreferences("username", MODE_PRIVATE);
-        editText = findViewById(R.id.editText);
-        String savedName = pref.getString("userName","");
-        editText.setText(savedName);
-        Intent nextPage = new Intent(this, NameActivity.class);
-        button.setOnClickListener(click ->
-        {
-            String name = editText.getText().toString();
-            SharedPreferences.Editor edit = pref.edit();
-            edit.putString("username", name);
-            edit.apply();
-            nextPage.putExtra("username", name);
-            startActivityForResult(nextPage, 1);
-        });
-    }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-    }
-    @Override
-    protected void onStart() {
-        super.onStart();
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-
-        String currentName = editText.getText().toString();
-        SharedPreferences.Editor edit = pref.edit();
-        edit.putString("username", currentName);
-        edit.apply();
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_choice_1) {
+            Toast.makeText(this, "You clicked on item 1", Toast.LENGTH_SHORT).show();
+            return true;
+        } else if (id == R.id.action_choice_2) {
+            Toast.makeText(this, "You clicked on item 2", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
     }
 }
